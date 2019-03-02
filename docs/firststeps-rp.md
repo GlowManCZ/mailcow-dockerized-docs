@@ -130,6 +130,10 @@ server {
 }
 ```
 
+### jwilder`s docker nginx proxy with LE
+This is example of configuration how it can be setup when you are using jwilder/nginx-proxy and JrCs/docker-letsencrypt-nginx-proxy-companion for automatic LE. It allows you to run another dockerized aplications beside mailcow services.
+
+
 ### HAProxy
 
 **Important/Fixme**: This example only forwards HTTPS traffic and does not use mailcows built-in ACME client.
