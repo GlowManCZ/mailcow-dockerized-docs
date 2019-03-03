@@ -133,6 +133,10 @@ server {
 ### Docker Nginx Proxy (jwilder`s) with LE support
 This is example of configuration how it can be setup when you are using jwilder/nginx-proxy and JrCs/docker-letsencrypt-nginx-proxy-companion for automatic LE certs. It allows you to run another dockerized aplications beside mailcow services.
 
+Create config directory on host
+```
+mkdir -p /var/docker/nginx-proxy/conf.d
+```
 
 Start nginx-proxy docker container and set-up volume for additional config file for nginx
 ```
@@ -141,6 +145,7 @@ docker run --detach \
     --publish 80:80 \
     --publish 443:443 \
     --volume /var/docker/nginx-proxy/conf.d:/etc/nginx/certs \
+    --volume /opt/mailcow-dockerized/data/assets/ssl:/opt/mailcow-dockerized/data/assets/ssl \
     --volume /etc/nginx/certs \
     --volume /etc/nginx/vhost.d \
     --volume /usr/share/nginx/html \
@@ -148,7 +153,73 @@ docker run --detach \
     jwilder/nginx-proxy
 ```
 
+Exec this following commands to repair dhparam in nginx-proxy container
+```
+docker exec -it -w /etc/nginx/dhparam nginx-proxy rm dhparam
+docker exec -it -w /app nginx-proxy ./generate-dhparam.sh
+```
 
+Now create new config in /var/docker/nginx-proxy/conf.d (named as hostname) file for nginx-proxy to proxied mailcow
+```
+nano MAILCOW_HOSTNAME.conf
+```
+
+And copy this inside
+```
+server {
+  listen 80;
+  listen [::]:80;
+  server_name MAILCOW_HOSTNAME autodiscover.*;
+  return 301 https://$host$request_uri;
+}
+server {
+  listen 80;
+  listen [::]:80;
+  server_name autoconfig.*;
+  rewrite ^/(.*)$ /autoconfig.php last;
+  location / {
+    proxy_pass http://nginx:8080/;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_read_timeout 3600;
+    client_max_body_size 0;
+  }
+}
+server {
+  listen 443;
+  server_name MAILCOW_HOSTNAME autodiscover.* autoconfig.*;
+
+  ssl on;
+  ssl_certificate /opt/mailcow-dockerized/data/assets/ssl/cert.pem;
+  ssl_certificate_key /opt/mailcow-dockerized/data/assets/ssl/key.pem;
+  ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+  ssl_ciphers HIGH:!aNULL:!MD5;
+
+  location / {
+      proxy_pass http://nginx:8080/;
+      proxy_set_header Host $http_host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_http_version 1.1;
+      proxy_set_header Connection "";
+      proxy_read_timeout 3600;
+      client_max_body_size 0;
+  }
+}
+```
+For correct communication mailcow and nginx proxy you need connect nginx proxy to mailcow network
+```
+docker network connect mailcowdockerized_mailcow-network nginx-proxy
+```
+Thats all :-) Now restart nginx-proxy and it`s working :-)
+```
+docker restart nginx-proxy 
+```
 
 ### HAProxy
 
