@@ -221,6 +221,24 @@ Thats all :-) Now restart nginx-proxy and it`s working :-)
 docker restart nginx-proxy 
 ```
 
+**Optional** you can add additional container for nginx-proxy to auto generate LE certs with dockergen.
+```
+docker run --detach \
+    --name nginx-proxy-letsencrypt \
+    --volumes-from nginx-proxy \
+    --volume /var/run/docker.sock:/var/run/docker.sock:ro \
+    jrcs/letsencrypt-nginx-proxy-companion
+```
+Now you can run web for example this app
+```
+docker run --detach \
+    --name your-test-app \
+    --env "VIRTUAL_HOST=subdomain.yourdomain.tld" \
+    --env "LETSENCRYPT_HOST=subdomain.yourdomain.tld" \
+    --env "LETSENCRYPT_EMAIL=mail@yourdomain.tld" \
+    nginx
+```
+
 ### HAProxy
 
 **Important/Fixme**: This example only forwards HTTPS traffic and does not use mailcows built-in ACME client.
