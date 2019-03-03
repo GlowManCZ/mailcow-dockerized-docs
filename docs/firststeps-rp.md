@@ -130,8 +130,24 @@ server {
 }
 ```
 
-### jwilder`s docker nginx proxy with LE
-This is example of configuration how it can be setup when you are using jwilder/nginx-proxy and JrCs/docker-letsencrypt-nginx-proxy-companion for automatic LE. It allows you to run another dockerized aplications beside mailcow services.
+### Docker Nginx Proxy (jwilder`s) with LE support
+This is example of configuration how it can be setup when you are using jwilder/nginx-proxy and JrCs/docker-letsencrypt-nginx-proxy-companion for automatic LE certs. It allows you to run another dockerized aplications beside mailcow services.
+
+
+Start nginx-proxy docker container and set-up volume for additional config file for nginx
+```
+docker run --detach \
+    --name nginx-proxy \
+    --publish 80:80 \
+    --publish 443:443 \
+    --volume /var/docker/nginx-proxy/conf.d:/etc/nginx/certs \
+    --volume /etc/nginx/certs \
+    --volume /etc/nginx/vhost.d \
+    --volume /usr/share/nginx/html \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    jwilder/nginx-proxy
+```
+
 
 
 ### HAProxy
